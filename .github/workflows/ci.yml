@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+
+    env:
+      PORT: 3000
+      MONGODB_URI: mongodb://127.0.0.1:27017/minishop
+      JWT_SECRET: ci-secret
+      JWT_EXPIRES_IN: 7d
+      GOOGLE_CLIENT_ID: test-google-client-id.apps.googleusercontent.com
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run syntax checks
+        run: npm run check
+
+      - name: Smoke-load app
+        run: node -e "require('./app'); console.log('app-loaded'); setTimeout(function(){ process.exit(0); }, 200);"
+
+      - name: Build Docker image
+        run: docker build . --tag minishop:ci
